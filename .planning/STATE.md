@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T11:27:09.856Z"
+last_updated: "2026-02-26T11:58:38Z"
 progress:
   total_phases: 2
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -23,32 +23,33 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 2 of 4 (Audio Subsystem)
-Plan: 1 of 3 in current phase
+Plan: 3 of 3 in current phase (phase complete)
 Status: In progress
-Last activity: 2026-02-26 — Completed 02-01 audio engine and trigger logic
+Last activity: 2026-02-26 — Completed 02-03 UAT gap closure (error sounds + job control silence)
 
-Progress: [████░░░░░░] 40%
+Progress: [████████░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 3 min
-- Total execution time: 11 min
+- Total plans completed: 6
+- Average duration: 2 min
+- Total execution time: 13 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-hook-infrastructure | 3 | 9 min | 3 min |
-| 02-audio | 1 | 2 min | 2 min |
+| 02-audio | 3 | 6 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (3 min), 01-03 (3 min), 02-01 (2 min)
+- Last 5 plans: 01-02 (3 min), 01-03 (3 min), 02-01 (2 min), 02-02 (2 min), 02-03 (2 min)
 - Trend: consistent
 
 *Updated after each plan completion*
 | Phase 02-audio P02 | 5 | 2 tasks | 16 files |
+| Phase 02-audio P03 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Recent decisions affecting current work:
 - [Phase 02-audio]: Stderr detection defaults OFF (_BSH_STDERR_DETECT=0) — exec 2>(tee) pattern adds background process per command and is fragile in some terminals
 - [Phase 02-audio]: Config hot reload via stat mtime check in _bsh_audio_config_check — cheapest change detection, runs once per precmd
 - [Phase 02-audio]: User custom packs at search step 2 in _bsh_resolve_sound — between drop-in override and bundled pack for full pack replacement
+- [02-03]: Error events bypass the duration threshold; event type determined before threshold gate so fast-failing commands always play error sounds
+- [02-03]: set +m must run in parent shell before backgrounding audio subshell; set -m restores monitor mode after disown
 
 ### Pending Todos
 
@@ -94,5 +97,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 02-01-PLAN.md — audio engine and trigger logic (3 tasks, 48 tests passing, audio subsystem wired into precmd)
+Stopped at: Completed 02-03-PLAN.md — UAT gap closure (2 tasks, 58 tests passing, error sounds fixed + job control silence fixed)
 Resume file: None
