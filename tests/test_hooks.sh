@@ -159,6 +159,10 @@ source lib/compat.sh 2>/dev/null
 # Source hooks.sh — defines and registers _bsh_preexec and _bsh_precmd
 source lib/hooks.sh 2>/dev/null
 
+# Stub _bsh_audio_trigger so hooks.sh precmd calls don't produce
+# "command not found" warnings (audio.sh is not loaded in this test file)
+_bsh_audio_trigger() { :; }
+
 # Test 7 — Shell detection: _BSH_SHELL should be "bash" (we pre-set it above,
 # and compat.sh should agree since BASH_VERSION is set)
 if [[ "${_BSH_SHELL:-}" == "bash" ]]; then
