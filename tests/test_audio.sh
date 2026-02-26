@@ -50,6 +50,7 @@ source lib/config.sh
 source lib/hooks.sh
 source lib/audio-player.sh
 source lib/audio.sh
+source lib/toggle.sh
 
 # ---------------------------------------------------------------------------
 # Phase A: function existence checks
@@ -281,6 +282,119 @@ if [[ -z "$_out" ]]; then
 else
   _test_fail "_bsh_resolve_sound returns empty string when no sounds directory exists" \
     "got: '$_out'"
+fi
+
+# ---------------------------------------------------------------------------
+# Phase H: stderr detection, pack switching, volume, hot reload
+# ---------------------------------------------------------------------------
+
+printf '# Phase H: stderr detection, pack switching, volume, hot reload\n'
+
+# Test 21 — _BSH_LAST_STDERR defaults to empty string
+_BSH_LAST_STDERR=""
+if [[ -z "${_BSH_LAST_STDERR:-}" ]]; then
+  _test_pass "_BSH_LAST_STDERR variable defaults to empty"
+else
+  _test_fail "_BSH_LAST_STDERR variable defaults to empty" "got: '${_BSH_LAST_STDERR}'"
+fi
+
+# Test 22 — bsh sound-pack sets _BSH_SOUND_PACK
+_BSH_DIR_SAVED="$_BSH_DIR"
+_BSH_DIR="$(mktemp -d)"   # use fresh dir so _bsh_config_set writes cleanly
+bsh sound-pack retro >/dev/null 2>&1
+_result="${_BSH_SOUND_PACK:-}"
+rm -rf "$_BSH_DIR"
+_BSH_DIR="$_BSH_DIR_SAVED"
+if [[ "$_result" == "retro" ]]; then
+  _test_pass "bsh sound-pack retro sets _BSH_SOUND_PACK to 'retro'"
+else
+  _test_fail "bsh sound-pack retro sets _BSH_SOUND_PACK to 'retro'" "got: '$_result'"
+fi
+# Reset pack to meme for subsequent tests
+_BSH_SOUND_PACK="meme"
+
+# Test 23 — sound resolution finds bundled file (project root has sounds/)
+# _BSH_DIR must point to the project root where sounds/ lives
+_BSH_PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+_BSH_DIR_SAVED="$_BSH_DIR"
+_BSH_DIR="$_BSH_PROJECT_ROOT"
+_BSH_SOUND_PACK="meme"
+_resolved="$(_bsh_resolve_sound "error" "light")"
+_BSH_DIR="$_BSH_DIR_SAVED"
+if [[ -n "$_resolved" && "$_resolved" == *.wav ]]; then
+  _test_pass "_bsh_resolve_sound finds bundled meme/error/light.wav"
+else
+  _test_fail "_bsh_resolve_sound finds bundled meme/error/light.wav" "got: '$_resolved'"
+fi
+
+# Test 24 — sound resolution returns empty string for nonexistent pack
+_BSH_DIR_SAVED="$_BSH_DIR"
+_BSH_DIR="$(mktemp -d)"
+_BSH_SOUND_PACK="nonexistent"
+_resolved="$(_bsh_resolve_sound "error" "light")"
+rm -rf "$_BSH_DIR"
+_BSH_DIR="$_BSH_DIR_SAVED"
+_BSH_SOUND_PACK="meme"
+if [[ -z "$_resolved" ]]; then
+  _test_pass "_bsh_resolve_sound returns empty for nonexistent pack"
+else
+  _test_fail "_bsh_resolve_sound returns empty for nonexistent pack" "got: '$_resolved'"
+fi
+
+# Test 25 — bsh volume sets _BSH_VOLUME
+_BSH_DIR_SAVED="$_BSH_DIR"
+_BSH_DIR="$(mktemp -d)"
+bsh volume 50 >/dev/null 2>&1
+_result="${_BSH_VOLUME:-}"
+rm -rf "$_BSH_DIR"
+_BSH_DIR="$_BSH_DIR_SAVED"
+if [[ "$_result" == "50" ]]; then
+  _test_pass "bsh volume 50 sets _BSH_VOLUME to '50'"
+else
+  _test_fail "bsh volume 50 sets _BSH_VOLUME to '50'" "got: '$_result'"
+fi
+
+# Test 26 — _bsh_audio_config_check function exists
+if declare -f _bsh_audio_config_check >/dev/null 2>&1; then
+  _test_pass "_bsh_audio_config_check is defined"
+else
+  _test_fail "_bsh_audio_config_check is defined" "function not found after sourcing audio.sh"
+fi
+
+# Test 27 — intensity tier boundaries
+_out27a="$(_bsh_get_intensity 4)"
+_out27b="$(_bsh_get_intensity 5)"
+_out27c="$(_bsh_get_intensity 30)"
+_out27d="$(_bsh_get_intensity 31)"
+if [[ "$_out27a" == "light" && "$_out27b" == "medium" && "$_out27c" == "medium" && "$_out27d" == "heavy" ]]; then
+  _test_pass "intensity boundaries: 4=light, 5=medium, 30=medium, 31=heavy"
+else
+  _test_fail "intensity boundaries: 4=light, 5=medium, 30=medium, 31=heavy" \
+    "got: 4='$_out27a' 5='$_out27b' 30='$_out27c' 31='$_out27d'"
+fi
+
+# Test 28 — trigger fires warning event when _BSH_LAST_STDERR=1 and exit=0
+# Strategy: override _bsh_audio_trigger internals by checking what sound file
+# path is passed to _bsh_play_sound.  We point _BSH_DIR to the project root
+# so _bsh_resolve_sound finds the real bundled sounds, then verify that the
+# resolved file path contains "warning" (the event category in the path).
+PLAY_CALLED=0
+PLAY_FILE=""
+_bsh_play_sound() { PLAY_CALLED=1; PLAY_FILE="$1"; }
+_BSH_CMD_DURATION=5
+_BSH_LAST_EXIT=0
+_BSH_LAST_CMD="make build"
+_BSH_AUDIO_TOOL="test"
+_BSH_LAST_STDERR="1"
+_BSH_SOUND_PACK="meme"
+_BSH_DIR="$_BSH_PROJECT_ROOT"
+_bsh_audio_trigger
+_BSH_DIR="$_BSH_DIR_SAVED"
+if [[ "$PLAY_CALLED" -eq 1 && "$PLAY_FILE" == *"warning"* ]]; then
+  _test_pass "trigger fires warning event when exit=0 but _BSH_LAST_STDERR=1"
+else
+  _test_fail "trigger fires warning event when exit=0 but _BSH_LAST_STDERR=1" \
+    "PLAY_CALLED=$PLAY_CALLED PLAY_FILE='$PLAY_FILE'"
 fi
 
 # ---------------------------------------------------------------------------

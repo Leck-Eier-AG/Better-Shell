@@ -21,6 +21,12 @@ _BSH_SOUND_PACK="${_BSH_SOUND_PACK:-meme}"
 # Intensity scaling method: "duration" (default) or "command-type"
 _BSH_SCALING_METHOD="${_BSH_SCALING_METHOD:-duration}"
 
+# Stderr detection: opt-in (default OFF).  When enabled, _bsh_preexec redirects
+# stderr through tee so _bsh_precmd can detect if the command produced stderr
+# output and trigger a warning event instead of success.
+# Users enable via: export _BSH_STDERR_DETECT=1  or  stderr_detect=1 in config.
+_BSH_STDERR_DETECT="${_BSH_STDERR_DETECT:-0}"
+
 # ---------------------------------------------------------------------------
 # Blacklist / whitelist arrays
 # ---------------------------------------------------------------------------
@@ -92,8 +98,9 @@ _bsh_get_intensity() {
 
 # _bsh_resolve_sound <event> <intensity>
 # Searches for a sound file in preference order:
-#   1. User drop-in: ~/.config/better-shell/sounds/<event>/
-#   2. Bundled pack:  ${_BSH_DIR}/sounds/${_BSH_SOUND_PACK}/<event>/
+#   1. User drop-in:    ~/.config/better-shell/sounds/<event>/
+#   2. User custom pack: ~/.config/better-shell/packs/<_BSH_SOUND_PACK>/<event>/
+#   3. Bundled pack:    ${_BSH_DIR}/sounds/${_BSH_SOUND_PACK}/<event>/
 # Within each directory, tries <intensity>.wav, <intensity>.mp3, then any
 # glob match for <intensity>.*.
 # Echoes the resolved file path, or empty string if none found.
@@ -104,6 +111,7 @@ _bsh_resolve_sound() {
 
   local -a search_dirs=(
     "${HOME}/.config/better-shell/sounds/${event}"
+    "${HOME}/.config/better-shell/packs/${_BSH_SOUND_PACK}/${event}"
     "${_BSH_DIR}/sounds/${_BSH_SOUND_PACK}/${event}"
   )
 
@@ -116,6 +124,25 @@ _bsh_resolve_sound() {
   done
 
   echo ""
+}
+
+# ---------------------------------------------------------------------------
+# Config hot reload — checks mtime on each _bsh_audio_trigger call
+# ---------------------------------------------------------------------------
+
+# _bsh_audio_config_check
+# Reloads ${_BSH_DIR}/config if its modification time has changed since the
+# last call.  Called at the top of _bsh_audio_trigger so config edits take
+# effect immediately without requiring the user to re-source the plugin.
+_bsh_audio_config_check() {
+  local config="${_BSH_DIR}/config"
+  [[ -f "$config" ]] || return 0
+  local current_mtime
+  # stat -c %Y (GNU/Linux) with fallback to stat -f %m (macOS/BSD)
+  current_mtime=$(stat -c %Y "$config" 2>/dev/null || stat -f %m "$config" 2>/dev/null || echo "0")
+  [[ "$current_mtime" == "${_BSH_CONFIG_MTIME:-}" ]] && return 0
+  _BSH_CONFIG_MTIME="$current_mtime"
+  _bsh_config_load
 }
 
 # ---------------------------------------------------------------------------
@@ -139,6 +166,9 @@ _bsh_resolve_sound() {
 #   6. Resolve intensity from duration
 #   7. Resolve sound file → play
 _bsh_audio_trigger() {
+  # Hot reload: pick up config file changes without re-sourcing
+  _bsh_audio_config_check
+
   # Guard: no audio player means total silence
   [[ -z "${_BSH_AUDIO_TOOL:-}" ]] && return 0
 

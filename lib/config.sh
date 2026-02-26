@@ -28,6 +28,7 @@ _bsh_config_load() {
       sound_pack)      _BSH_SOUND_PACK="$value"       ;;
       volume)          _BSH_VOLUME="$value"            ;;
       scaling_method)  _BSH_SCALING_METHOD="$value"   ;;
+      stderr_detect)   _BSH_STDERR_DETECT="$value"    ;;
       # Unknown keys are silently ignored (forward-compatible for future settings)
     esac
   done < "$config"
