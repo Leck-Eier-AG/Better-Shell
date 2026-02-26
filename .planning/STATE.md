@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T11:17:50Z"
+last_updated: "2026-02-26T11:27:09.856Z"
 progress:
-  total_phases: 4
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -48,6 +48,7 @@ Progress: [████░░░░░░] 40%
 - Trend: consistent
 
 *Updated after each plan completion*
+| Phase 02-audio P02 | 5 | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,10 @@ Recent decisions affecting current work:
 - [02-01]: Player probe order: pw-play > paplay > afplay > aplay (PipeWire first on modern Linux)
 - [02-01]: Whitelist overrides both threshold and blacklist (explicit user intent wins)
 - [02-01]: ERE patterns stored unquoted in [[ =~ ]] (quoting disables regex in bash/zsh)
+- [Phase 02-audio]: Python wave module used instead of sox for sound generation — sox unavailable, Python3 stdlib generates valid WAV with no external deps
+- [Phase 02-audio]: Stderr detection defaults OFF (_BSH_STDERR_DETECT=0) — exec 2>(tee) pattern adds background process per command and is fragile in some terminals
+- [Phase 02-audio]: Config hot reload via stat mtime check in _bsh_audio_config_check — cheapest change detection, runs once per precmd
+- [Phase 02-audio]: User custom packs at search step 2 in _bsh_resolve_sound — between drop-in override and bundled pack for full pack replacement
 
 ### Pending Todos
 

@@ -13,7 +13,7 @@ Better Shell is built in four phases that follow the natural dependency order of
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Hook Infrastructure** - Safe shell hooks that detect commands in bash and zsh without breaking anything (completed 2026-02-26)
-- [ ] **Phase 2: Audio** - Non-blocking sound playback on error and success with cross-platform support
+- [x] **Phase 2: Audio** - Non-blocking sound playback on error and success with cross-platform support (completed 2026-02-26)
 - [ ] **Phase 3: Visuals** - ASCII art reactions, animated spinners, and prompt exit code indicator
 - [ ] **Phase 4: Config, Triggers, and CLI** - TOML config file, custom trigger rules, and CLI commands for setup
 
@@ -44,7 +44,7 @@ Plans:
   3. Plugin works out of the box with bundled sounds — no user configuration required
   4. User can drop their own .wav or .mp3 file into config and hear it instead of the default
   5. Plugin detects and uses the available audio tool (afplay/aplay/paplay) and silently no-ops on systems with no audio
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 02-01-PLAN.md — Core audio engine: player detection, non-blocking playback, trigger logic, blacklist/whitelist, threshold, intensity scaling
 - [ ] 02-02-PLAN.md — Bundled sound packs (meme/chill/retro), custom sounds, pack switching, stderr detection, hot reload
@@ -79,6 +79,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Hook Infrastructure | 3/3 | Complete   | 2026-02-26 |
-| 2. Audio | 1/2 | In progress | - |
+| 2. Audio | 2/2 | Complete   | 2026-02-26 |
 | 3. Visuals | 0/? | Not started | - |
 | 4. Config, Triggers, and CLI | 0/? | Not started | - |
