@@ -33,12 +33,17 @@ _test_fail() {
 # Run all tests from the project root
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+# Project root for resolving bundled sounds in tests that need real files
+_BSH_PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 # ---------------------------------------------------------------------------
 # Setup: load just the files needed (skip env.sh and compat.sh — they gate
 # on interactive shell and would exit early in a non-interactive test run).
 # ---------------------------------------------------------------------------
 
 _BSH_DIR="$(mktemp -d)"
+# Save initial _BSH_DIR so tests that temporarily swap it can restore it
+_BSH_DIR_SAVED="$_BSH_DIR"
 _BSH_ENABLED=1
 _BSH_SSH_ENABLED=0
 _BSH_SHELL="bash"
@@ -220,19 +225,26 @@ fi
 
 printf '# Phase F: trigger dispatch\n'
 
-# Test 17 — threshold blocks short commands (duration=0, exit=1, blacklist clear)
+# Test 17 — error event bypasses threshold (duration=0, exit=1, non-blacklisted cmd)
+# `make build` is not blacklisted; even at duration=0 the error sound must play.
 PLAY_CALLED=0
-_bsh_play_sound() { PLAY_CALLED=1; }
+PLAY_FILE=""
+_bsh_play_sound() { PLAY_CALLED=1; PLAY_FILE="$1"; }
 _BSH_CMD_DURATION=0
 _BSH_LAST_EXIT=1
-_BSH_LAST_CMD="ls"
+_BSH_LAST_CMD="make build"
 _BSH_AUDIO_TOOL="test"
 _BSH_AUDIO_THRESHOLD=1
+_BSH_LAST_STDERR=""
+_BSH_SOUND_PACK="meme"
+_BSH_DIR="$_BSH_PROJECT_ROOT"
 _bsh_audio_trigger
-if [[ "$PLAY_CALLED" -eq 0 ]]; then
-  _test_pass "threshold blocks short commands (duration=0 < threshold=1)"
+_BSH_DIR="$_BSH_DIR_SAVED"
+if [[ "$PLAY_CALLED" -eq 1 && "$PLAY_FILE" == *"error"* ]]; then
+  _test_pass "error event bypasses threshold (duration=0, exit=1, non-blacklisted cmd)"
 else
-  _test_fail "threshold blocks short commands (duration=0 < threshold=1)" "_bsh_play_sound was called"
+  _test_fail "error event bypasses threshold (duration=0, exit=1, non-blacklisted cmd)" \
+    "PLAY_CALLED=$PLAY_CALLED PLAY_FILE='$PLAY_FILE'"
 fi
 
 # Test 18 — blacklist blocks vim even with sufficient duration and failure
@@ -315,7 +327,6 @@ _BSH_SOUND_PACK="meme"
 
 # Test 23 — sound resolution finds bundled file (project root has sounds/)
 # _BSH_DIR must point to the project root where sounds/ lives
-_BSH_PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 _BSH_DIR_SAVED="$_BSH_DIR"
 _BSH_DIR="$_BSH_PROJECT_ROOT"
 _BSH_SOUND_PACK="meme"
@@ -395,6 +406,40 @@ if [[ "$PLAY_CALLED" -eq 1 && "$PLAY_FILE" == *"warning"* ]]; then
 else
   _test_fail "trigger fires warning event when exit=0 but _BSH_LAST_STDERR=1" \
     "PLAY_CALLED=$PLAY_CALLED PLAY_FILE='$PLAY_FILE'"
+fi
+
+# Test 29 — threshold still blocks short success commands (duration=0, exit=0)
+PLAY_CALLED=0
+_bsh_play_sound() { PLAY_CALLED=1; }
+_BSH_CMD_DURATION=0
+_BSH_LAST_EXIT=0
+_BSH_LAST_CMD="ls"
+_BSH_AUDIO_TOOL="test"
+_BSH_AUDIO_THRESHOLD=1
+_BSH_LAST_STDERR=""
+_bsh_audio_trigger
+if [[ "$PLAY_CALLED" -eq 0 ]]; then
+  _test_pass "threshold still blocks short success commands (duration=0, exit=0)"
+else
+  _test_fail "threshold still blocks short success commands (duration=0, exit=0)" \
+    "_bsh_play_sound was called"
+fi
+
+# Test 30 — error event still blocked by blacklist (vim with exit=1)
+PLAY_CALLED=0
+_bsh_play_sound() { PLAY_CALLED=1; }
+_BSH_CMD_DURATION=0
+_BSH_LAST_EXIT=1
+_BSH_LAST_CMD="vim foo.txt"
+_BSH_AUDIO_TOOL="test"
+_BSH_AUDIO_THRESHOLD=1
+_BSH_LAST_STDERR=""
+_bsh_audio_trigger
+if [[ "$PLAY_CALLED" -eq 0 ]]; then
+  _test_pass "error event still blocked by blacklist (vim with exit=1)"
+else
+  _test_fail "error event still blocked by blacklist (vim with exit=1)" \
+    "_bsh_play_sound was called (blacklist should have blocked)"
 fi
 
 # ---------------------------------------------------------------------------

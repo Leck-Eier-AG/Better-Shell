@@ -159,10 +159,10 @@ _bsh_audio_config_check() {
 #
 # Decision flow:
 #   1. No player → return (silent)
-#   2. Whitelist match → skip threshold & blacklist, play
-#   3. Duration below threshold → return (too fast)
-#   4. Blacklist match → return (interactive/editor command)
-#   5. Determine event: error | warning | success
+#   2. Determine event type FIRST: error | warning | success
+#   3. Whitelist match → skip threshold & blacklist, play
+#   4. Error event → skip threshold (fast errors must always play), check blacklist
+#   5. Non-error event → apply whitelist/threshold/blacklist as before
 #   6. Resolve intensity from duration
 #   7. Resolve sound file → play
 _bsh_audio_trigger() {
@@ -175,16 +175,9 @@ _bsh_audio_trigger() {
   # Extract just the command name (first word, no args)
   local cmd_name="${_BSH_LAST_CMD%% *}"
 
-  # Whitelist overrides threshold and blacklist
-  if ! _bsh_in_whitelist "$cmd_name"; then
-    # Threshold check: skip commands that completed in under the threshold
-    [[ "${_BSH_CMD_DURATION:-0}" -lt "${_BSH_AUDIO_THRESHOLD:-1}" ]] && return 0
-
-    # Blacklist check: skip interactive/editor/REPL commands
-    _bsh_is_blacklisted "$cmd_name" && return 0
-  fi
-
-  # Determine event type based on exit code (and optional stderr indicator)
+  # Determine event type FIRST so errors can bypass the duration threshold.
+  # Error sounds must always play — the threshold was designed to suppress
+  # trivial successes, not to silence fast-failing commands.
   local event
   if [[ "${_BSH_LAST_EXIT:-0}" -ne 0 ]]; then
     event="error"
@@ -192,6 +185,20 @@ _bsh_audio_trigger() {
     event="warning"
   else
     event="success"
+  fi
+
+  # Whitelist overrides threshold and blacklist for all event types
+  if ! _bsh_in_whitelist "$cmd_name"; then
+    if [[ "$event" == "error" ]]; then
+      # Error events bypass the threshold — fast-failing commands (duration=0)
+      # must play an error sound. Blacklist still applies: no error sounds
+      # from interactive editors/REPLs the user chose to run.
+      _bsh_is_blacklisted "$cmd_name" && return 0
+    else
+      # Non-error (success/warning): apply threshold then blacklist
+      [[ "${_BSH_CMD_DURATION:-0}" -lt "${_BSH_AUDIO_THRESHOLD:-1}" ]] && return 0
+      _bsh_is_blacklisted "$cmd_name" && return 0
+    fi
   fi
 
   # Calculate intensity from command duration
