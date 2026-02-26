@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Plugin fires preexec before commands and precmd after commands in both bash and zsh
   3. Plugin emits no output and adds no visible latency in non-interactive or piped contexts (SSH, CI, headless)
   4. User can run `bsh off` to suppress all plugin behavior and `bsh on` to restore it
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 01-01-PLAN.md — Core hook infrastructure: env detection, shell compat, preexec/precmd hooks
 - [ ] 01-02-PLAN.md — Toggle command (bsh on/off/status), config persistence, build distributable
@@ -74,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Hook Infrastructure | 0/2 | Planning complete | - |
+| 1. Hook Infrastructure | 1/2 | In Progress|  |
 | 2. Audio | 0/? | Not started | - |
 | 3. Visuals | 0/? | Not started | - |
 | 4. Config, Triggers, and CLI | 0/? | Not started | - |

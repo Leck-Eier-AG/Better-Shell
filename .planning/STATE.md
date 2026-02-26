@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 1 of 4 (Hook Infrastructure)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-02-26 — Roadmap created, phases derived from requirements
+Plan: 1 of ? in current phase
+Status: In progress
+Last activity: 2026-02-26 — Completed 01-01 hook infrastructure foundation
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 1
+- Average duration: 3 min
+- Total execution time: 3 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-hook-infrastructure | 1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: —
+- Last 5 plans: 01-01 (3 min)
 - Trend: —
 
 *Updated after each plan completion*
@@ -46,6 +46,11 @@ Recent decisions affecting current work:
 - [Init]: Rust companion binary for audio/config/CLI — pure shell cannot handle audio
 - [Init]: TOML config (not YAML) — unambiguous spec, native serde support
 - [Init]: Source-based installation — single line in rc file, no package manager dependency
+- [01-01]: bash-preexec v0.6.0 bundled in vendor/ — avoids DEBUG trap edge cases in bash
+- [01-01]: Hook registration via array append (preexec_functions+=, add-zsh-hook) — never clobbers existing hooks
+- [01-01]: Exit code captured as first line of _bsh_precmd before any other operation
+- [01-01]: SSH blocked by default in _bsh_is_interactive; CI environments always blocked
+- [01-01]: Makefile uses wildcard for LIB so Plan 02 files (toggle.sh, config.sh) don't break build
 
 ### Pending Todos
 
@@ -60,5 +65,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Roadmap created and written to .planning/ROADMAP.md
+Stopped at: Completed 01-01-PLAN.md — hook infrastructure foundation (3 tasks, 14 tests passing)
 Resume file: None

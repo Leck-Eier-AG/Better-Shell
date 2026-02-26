@@ -9,9 +9,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Hook Infrastructure
 
-- [ ] **HOOK-01**: Shell hooks (preexec/precmd) detect command start, end, and exit code across bash and zsh
-- [ ] **HOOK-02**: Plugin installs via single `source` line in rc file
-- [ ] **HOOK-03**: Auto-detect SSH/headless/CI environments and disable audio/visuals
+- [x] **HOOK-01**: Shell hooks (preexec/precmd) detect command start, end, and exit code across bash and zsh
+- [x] **HOOK-02**: Plugin installs via single `source` line in rc file
+- [x] **HOOK-03**: Auto-detect SSH/headless/CI environments and disable audio/visuals
 - [ ] **HOOK-04**: Global enable/disable toggle via command and config
 
 ### Audio
@@ -68,9 +68,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HOOK-01 | Phase 1 | Pending |
-| HOOK-02 | Phase 1 | Pending |
-| HOOK-03 | Phase 1 | Pending |
+| HOOK-01 | Phase 1 | Complete |
+| HOOK-02 | Phase 1 | Complete |
+| HOOK-03 | Phase 1 | Complete |
 | HOOK-04 | Phase 1 | Pending |
 | AUD-01 | Phase 2 | Pending |
 | AUD-02 | Phase 2 | Pending |
