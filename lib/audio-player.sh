@@ -70,10 +70,11 @@ _bsh_detect_audio_player() {
 
 # _bsh_play_sound <file>
 # Play a sound file asynchronously using the detected audio player.
-# Fires in a subshell with job control disabled (set +m) to suppress
-# "[1] Done ..." messages from appearing at the prompt.
+# Disables monitor mode (set +m) in the PARENT shell before backgrounding so
+# that "[N] Done ..." job completion messages never appear at the prompt.
 # The subshell is backgrounded and disowned immediately so it does NOT block
-# the next prompt from appearing.
+# the next prompt from appearing. Monitor mode is re-enabled (set -m) after
+# disown so the interactive session is unaffected for subsequent commands.
 #
 # Guards (all three trigger a silent no-op):
 #   - _BSH_AUDIO_TOOL is empty (no player detected)
@@ -87,9 +88,12 @@ _bsh_play_sound() {
   [[ -z "$file" ]]               && return 0
   [[ -f "$file" ]]               || return 0
 
-  # Launch in a subshell with job control disabled to suppress "Done" output.
+  # Disable job control in the PARENT shell before backgrounding the subshell.
+  # set +m must run in the parent — doing it inside the child is a no-op for
+  # suppressing "[N] done" messages because those are printed by the parent.
+  # 2>/dev/null suppresses "no job control" warnings in non-interactive contexts.
+  set +m 2>/dev/null
   (
-    set +m
     case "$_BSH_AUDIO_TOOL" in
       pw-play)
         pw-play --volume="$(_bsh_vol_pw "${_BSH_VOLUME:-70}")" "$file" >/dev/null 2>&1
@@ -106,6 +110,8 @@ _bsh_play_sound() {
     esac
   ) &
   disown $! 2>/dev/null
+  # Re-enable job control for the interactive shell after disown
+  set -m 2>/dev/null
 
   return 0
 }

@@ -425,9 +425,14 @@ _bsh_config_load() {
 
     # Map known keys to their corresponding shell variables
     case "$key" in
-      enabled)     _BSH_ENABLED="$value"     ;;
-      ssh_enabled) _BSH_SSH_ENABLED="$value" ;;
-      # Unknown keys are silently ignored (forward-compatible for Phase 2+ settings)
+      enabled)         _BSH_ENABLED="$value"          ;;
+      ssh_enabled)     _BSH_SSH_ENABLED="$value"      ;;
+      audio_threshold) _BSH_AUDIO_THRESHOLD="$value"  ;;
+      sound_pack)      _BSH_SOUND_PACK="$value"       ;;
+      volume)          _BSH_VOLUME="$value"            ;;
+      scaling_method)  _BSH_SCALING_METHOD="$value"   ;;
+      stderr_detect)   _BSH_STDERR_DETECT="$value"    ;;
+      # Unknown keys are silently ignored (forward-compatible for future settings)
     esac
   done < "$config"
 }
@@ -554,6 +559,17 @@ _bsh_preexec() {
 
   # Record the command string ($1 is passed by both bash-preexec and zsh native hook)
   _BSH_LAST_CMD="${1:-}"
+
+  # Stderr detection (opt-in via _BSH_STDERR_DETECT=1).
+  # Sets up a tee redirect so _bsh_precmd can detect whether the command produced
+  # any stderr output and fire a warning event instead of success.
+  # fd 9 is used to save the original stderr (fixed fd, bash 3.x compatible).
+  if [[ "${_BSH_STDERR_DETECT:-0}" == "1" ]]; then
+    _BSH_STDERR_FILE="${TMPDIR:-/tmp}/bsh_stderr.$$"
+    : > "$_BSH_STDERR_FILE"   # truncate/create the capture file
+    exec 9>&2                  # save original stderr to fd 9
+    exec 2> >(tee -a "$_BSH_STDERR_FILE" >&9)  # tee to file AND original stderr
+  fi
 }
 
 # _bsh_precmd — called after each interactive command completes (before the next prompt).
@@ -572,11 +588,20 @@ _bsh_precmd() {
   # If _BSH_CMD_START_TIME is not set, use SECONDS so duration evaluates to 0.
   _BSH_CMD_DURATION=$(( SECONDS - ${_BSH_CMD_START_TIME:-$SECONDS} ))
 
+  # Stderr detection cleanup: check captured output and restore stderr.
+  # Must happen BEFORE _bsh_audio_trigger so the warning decision sees _BSH_LAST_STDERR.
+  _BSH_LAST_STDERR=""
+  if [[ "${_BSH_STDERR_DETECT:-0}" == "1" && -f "${_BSH_STDERR_FILE:-}" ]]; then
+    [[ -s "$_BSH_STDERR_FILE" ]] && _BSH_LAST_STDERR="1"  # non-empty file = has stderr
+    rm -f "$_BSH_STDERR_FILE"
+    exec 2>&9 9>&-  # restore original stderr, close saved fd
+  fi
+
+  # Audio feedback (Phase 2)
+  _bsh_audio_trigger
+
   # Reset start time for next command
   _BSH_CMD_START_TIME=$SECONDS
-
-  # Phase 2+ will act on _BSH_LAST_EXIT and _BSH_CMD_DURATION here
-  # (e.g., play audio feedback, trigger visual effects based on exit code and duration)
 }
 
 # Hook registration — dispatch based on detected shell (_BSH_SHELL set by compat.sh)
@@ -590,6 +615,343 @@ else
   preexec_functions+=(_bsh_preexec)
   precmd_functions+=(_bsh_precmd)
 fi
+# Better Shell — Audio Player Engine
+# Detects an available audio player at source time and provides a non-blocking
+# _bsh_play_sound() function that dispatches to the detected player.
+#
+# Supported players (in preference order):
+#   pw-play  — PipeWire (modern Linux, Wayland)
+#   paplay   — PulseAudio (common Linux)
+#   afplay   — macOS built-in
+#   aplay    — ALSA (Linux fallback; no volume flag)
+#
+# If no player is found _BSH_AUDIO_TOOL remains empty and all playback is a
+# silent no-op.  This is intentional — the plugin must not error on headless
+# or audio-less systems.
+
+# ---------------------------------------------------------------------------
+# Default variables
+# ---------------------------------------------------------------------------
+
+# Volume level: 0-100 integer; individual player functions normalise to their
+# required format.  Users can override by setting _BSH_VOLUME before sourcing.
+_BSH_VOLUME="${_BSH_VOLUME:-70}"
+
+# Detected player binary name; empty = no player available.
+_BSH_AUDIO_TOOL=""
+
+# ---------------------------------------------------------------------------
+# Volume normalisation helpers
+# ---------------------------------------------------------------------------
+
+# _bsh_vol_afplay <0-100>
+# Outputs a float in the range 0.00-1.00 for afplay -v
+_bsh_vol_afplay() {
+  awk -v v="$1" 'BEGIN { printf "%.2f\n", v / 100 }'
+}
+
+# _bsh_vol_pw <0-100>
+# Outputs a float in the range 0.00-1.00 for pw-play --volume
+_bsh_vol_pw() {
+  awk -v v="$1" 'BEGIN { printf "%.2f\n", v / 100 }'
+}
+
+# _bsh_vol_paplay <0-100>
+# Outputs an integer in the range 0-65536 for paplay --volume
+_bsh_vol_paplay() {
+  echo $(( $1 * 65536 / 100 ))
+}
+
+# ---------------------------------------------------------------------------
+# Player detection
+# ---------------------------------------------------------------------------
+
+# _bsh_detect_audio_player
+# Probe for known audio players in preference order.
+# Sets _BSH_AUDIO_TOOL to the first found binary name, or "" if none exist.
+# Called once at the bottom of this file (source-time, one-time detection).
+_bsh_detect_audio_player() {
+  local p
+  for p in pw-play paplay afplay aplay; do
+    if command -v "$p" >/dev/null 2>&1; then
+      _BSH_AUDIO_TOOL="$p"
+      return 0
+    fi
+  done
+  _BSH_AUDIO_TOOL=""
+}
+
+# ---------------------------------------------------------------------------
+# Playback
+# ---------------------------------------------------------------------------
+
+# _bsh_play_sound <file>
+# Play a sound file asynchronously using the detected audio player.
+# Disables monitor mode (set +m) in the PARENT shell before backgrounding so
+# that "[N] Done ..." job completion messages never appear at the prompt.
+# The subshell is backgrounded and disowned immediately so it does NOT block
+# the next prompt from appearing. Monitor mode is re-enabled (set -m) after
+# disown so the interactive session is unaffected for subsequent commands.
+#
+# Guards (all three trigger a silent no-op):
+#   - _BSH_AUDIO_TOOL is empty (no player detected)
+#   - $1 is empty
+#   - $1 does not exist as a regular file
+_bsh_play_sound() {
+  local file="$1"
+
+  # Guard: no player, no file path, or file does not exist
+  [[ -z "${_BSH_AUDIO_TOOL:-}" ]] && return 0
+  [[ -z "$file" ]]               && return 0
+  [[ -f "$file" ]]               || return 0
+
+  # Disable job control in the PARENT shell before backgrounding the subshell.
+  # set +m must run in the parent — doing it inside the child is a no-op for
+  # suppressing "[N] done" messages because those are printed by the parent.
+  # 2>/dev/null suppresses "no job control" warnings in non-interactive contexts.
+  set +m 2>/dev/null
+  (
+    case "$_BSH_AUDIO_TOOL" in
+      pw-play)
+        pw-play --volume="$(_bsh_vol_pw "${_BSH_VOLUME:-70}")" "$file" >/dev/null 2>&1
+        ;;
+      paplay)
+        paplay --volume="$(_bsh_vol_paplay "${_BSH_VOLUME:-70}")" "$file" >/dev/null 2>&1
+        ;;
+      afplay)
+        afplay -v "$(_bsh_vol_afplay "${_BSH_VOLUME:-70}")" "$file" >/dev/null 2>&1
+        ;;
+      aplay)
+        aplay -q "$file" >/dev/null 2>&1
+        ;;
+    esac
+  ) &
+  disown $! 2>/dev/null
+  # Re-enable job control for the interactive shell after disown
+  set -m 2>/dev/null
+
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Source-time player detection (runs once when this file is sourced)
+# ---------------------------------------------------------------------------
+
+[[ "${_BSH_ENABLED:-1}" == "1" ]] && _bsh_detect_audio_player
+# Better Shell — Audio Trigger Logic
+# Evaluates whether audio feedback should play after each command, determines
+# the event type and intensity, resolves the sound file, and dispatches to
+# _bsh_play_sound (defined in audio-player.sh, sourced before this file).
+#
+# Called from _bsh_precmd in lib/hooks.sh.
+
+# ---------------------------------------------------------------------------
+# Default variables
+# ---------------------------------------------------------------------------
+
+# Threshold in seconds.  SECONDS is an integer in both bash and zsh, so sub-
+# second precision is unavailable.  1 second is as close as possible to the
+# 500 ms user intent: a duration of 0 (command completed within the same
+# second it started) is skipped; 1+ second commands play audio.
+_BSH_AUDIO_THRESHOLD="${_BSH_AUDIO_THRESHOLD:-1}"
+
+# Sound pack name; resolves to ${_BSH_DIR}/sounds/${_BSH_SOUND_PACK}/
+_BSH_SOUND_PACK="${_BSH_SOUND_PACK:-meme}"
+
+# Intensity scaling method: "duration" (default) or "command-type"
+_BSH_SCALING_METHOD="${_BSH_SCALING_METHOD:-duration}"
+
+# Stderr detection: opt-in (default OFF).  When enabled, _bsh_preexec redirects
+# stderr through tee so _bsh_precmd can detect if the command produced stderr
+# output and trigger a warning event instead of success.
+# Users enable via: export _BSH_STDERR_DETECT=1  or  stderr_detect=1 in config.
+_BSH_STDERR_DETECT="${_BSH_STDERR_DETECT:-0}"
+
+# ---------------------------------------------------------------------------
+# Blacklist / whitelist arrays
+# ---------------------------------------------------------------------------
+
+# Commands matching any pattern are silenced (threshold and blacklist skipped).
+# Patterns are ERE; do NOT quote when used in [[ =~ ]] (quoting disables regex).
+_BSH_BLACKLIST_PATTERNS=(
+  "^vim$"    "^nvim$"   "^nano$"   "^emacs$"  "^vi$"
+  "^man$"    "^less$"   "^more$"   "^watch$"  "^top$"
+  "^htop$"   "^python"  "^node$"   "^irb$"    "^psql$"
+  "^mysql$"  "^ssh$"
+)
+
+# Commands matching any pattern bypass threshold AND blacklist checks.
+# Empty by default; users populate in their config.
+_BSH_WHITELIST_PATTERNS=()
+
+# ---------------------------------------------------------------------------
+# Helpers: blacklist / whitelist matching
+# ---------------------------------------------------------------------------
+
+# _bsh_is_blacklisted <cmd_name>
+# Returns 0 (true) if cmd_name matches any pattern in _BSH_BLACKLIST_PATTERNS.
+_bsh_is_blacklisted() {
+  local cmd_name="$1"
+  local pattern
+  for pattern in "${_BSH_BLACKLIST_PATTERNS[@]}"; do
+    # Do NOT quote $pattern — quoting disables ERE matching in bash/zsh
+    [[ "$cmd_name" =~ $pattern ]] && return 0
+  done
+  return 1
+}
+
+# _bsh_in_whitelist <cmd_name>
+# Returns 0 (true) if cmd_name matches any pattern in _BSH_WHITELIST_PATTERNS.
+# Empty array always returns 1 (nothing whitelisted).
+_bsh_in_whitelist() {
+  local cmd_name="$1"
+  local pattern
+  for pattern in "${_BSH_WHITELIST_PATTERNS[@]}"; do
+    [[ "$cmd_name" =~ $pattern ]] && return 0
+  done
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# Intensity calculation
+# ---------------------------------------------------------------------------
+
+# _bsh_get_intensity <duration_seconds>
+# Duration-based bucketing:
+#   < 5 s  → light
+#   5-30 s → medium
+#   > 30 s → heavy
+_bsh_get_intensity() {
+  local duration="$1"
+  if [[ "$duration" -lt 5 ]]; then
+    echo "light"
+  elif [[ "$duration" -le 30 ]]; then
+    echo "medium"
+  else
+    echo "heavy"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Sound file resolution
+# ---------------------------------------------------------------------------
+
+# _bsh_resolve_sound <event> <intensity>
+# Searches for a sound file in preference order:
+#   1. User drop-in:    ~/.config/better-shell/sounds/<event>/
+#   2. User custom pack: ~/.config/better-shell/packs/<_BSH_SOUND_PACK>/<event>/
+#   3. Bundled pack:    ${_BSH_DIR}/sounds/${_BSH_SOUND_PACK}/<event>/
+# Within each directory, tries <intensity>.wav, <intensity>.mp3, then any
+# glob match for <intensity>.*.
+# Echoes the resolved file path, or empty string if none found.
+_bsh_resolve_sound() {
+  local event="$1"
+  local intensity="$2"
+  local f
+
+  local -a search_dirs=(
+    "${HOME}/.config/better-shell/sounds/${event}"
+    "${HOME}/.config/better-shell/packs/${_BSH_SOUND_PACK}/${event}"
+    "${_BSH_DIR}/sounds/${_BSH_SOUND_PACK}/${event}"
+  )
+
+  local dir
+  for dir in "${search_dirs[@]}"; do
+    [[ -d "$dir" ]] || continue
+    for f in "${dir}/${intensity}.wav" "${dir}/${intensity}.mp3" "${dir}/${intensity}".*; do
+      [[ -f "$f" ]] && echo "$f" && return 0
+    done
+  done
+
+  echo ""
+}
+
+# ---------------------------------------------------------------------------
+# Config hot reload — checks mtime on each _bsh_audio_trigger call
+# ---------------------------------------------------------------------------
+
+# _bsh_audio_config_check
+# Reloads ${_BSH_DIR}/config if its modification time has changed since the
+# last call.  Called at the top of _bsh_audio_trigger so config edits take
+# effect immediately without requiring the user to re-source the plugin.
+_bsh_audio_config_check() {
+  local config="${_BSH_DIR}/config"
+  [[ -f "$config" ]] || return 0
+  local current_mtime
+  # stat -c %Y (GNU/Linux) with fallback to stat -f %m (macOS/BSD)
+  current_mtime=$(stat -c %Y "$config" 2>/dev/null || stat -f %m "$config" 2>/dev/null || echo "0")
+  [[ "$current_mtime" == "${_BSH_CONFIG_MTIME:-}" ]] && return 0
+  _BSH_CONFIG_MTIME="$current_mtime"
+  _bsh_config_load
+}
+
+# ---------------------------------------------------------------------------
+# Main audio trigger — called from _bsh_precmd
+# ---------------------------------------------------------------------------
+
+# _bsh_audio_trigger
+# Reads global state variables set by the hook infrastructure:
+#   _BSH_AUDIO_TOOL    — detected player (empty = silent)
+#   _BSH_LAST_CMD      — command string typed by the user
+#   _BSH_CMD_DURATION  — elapsed seconds for the last command
+#   _BSH_LAST_EXIT     — exit code of the last command
+#   _BSH_LAST_STDERR   — (optional) stderr indicator; non-empty → warning event
+#
+# Decision flow:
+#   1. No player → return (silent)
+#   2. Determine event type FIRST: error | warning | success
+#   3. Whitelist match → skip threshold & blacklist, play
+#   4. Error event → skip threshold (fast errors must always play), check blacklist
+#   5. Non-error event → apply whitelist/threshold/blacklist as before
+#   6. Resolve intensity from duration
+#   7. Resolve sound file → play
+_bsh_audio_trigger() {
+  # Hot reload: pick up config file changes without re-sourcing
+  _bsh_audio_config_check
+
+  # Guard: no audio player means total silence
+  [[ -z "${_BSH_AUDIO_TOOL:-}" ]] && return 0
+
+  # Extract just the command name (first word, no args)
+  local cmd_name="${_BSH_LAST_CMD%% *}"
+
+  # Determine event type FIRST so errors can bypass the duration threshold.
+  # Error sounds must always play — the threshold was designed to suppress
+  # trivial successes, not to silence fast-failing commands.
+  local event
+  if [[ "${_BSH_LAST_EXIT:-0}" -ne 0 ]]; then
+    event="error"
+  elif [[ -n "${_BSH_LAST_STDERR:-}" ]]; then
+    event="warning"
+  else
+    event="success"
+  fi
+
+  # Whitelist overrides threshold and blacklist for all event types
+  if ! _bsh_in_whitelist "$cmd_name"; then
+    if [[ "$event" == "error" ]]; then
+      # Error events bypass the threshold — fast-failing commands (duration=0)
+      # must play an error sound. Blacklist still applies: no error sounds
+      # from interactive editors/REPLs the user chose to run.
+      _bsh_is_blacklisted "$cmd_name" && return 0
+    else
+      # Non-error (success/warning): apply threshold then blacklist
+      [[ "${_BSH_CMD_DURATION:-0}" -lt "${_BSH_AUDIO_THRESHOLD:-1}" ]] && return 0
+      _bsh_is_blacklisted "$cmd_name" && return 0
+    fi
+  fi
+
+  # Calculate intensity from command duration
+  local intensity
+  intensity="$(_bsh_get_intensity "${_BSH_CMD_DURATION:-0}")"
+
+  # Resolve the sound file path
+  local sound_file
+  sound_file="$(_bsh_resolve_sound "$event" "$intensity")"
+
+  # Play (no-op if sound_file is empty — _bsh_play_sound guards on empty/missing)
+  _bsh_play_sound "$sound_file"
+}
 # Better Shell — Toggle Command
 # Provides the public `bsh` function: bsh on|off|status [--persist]
 
@@ -607,17 +969,22 @@ _bsh_print_status() {
   printf '  state:       %s\n' "$state"
   printf '  shell:       %s\n' "${_BSH_SHELL:-unknown}"
   printf '  audio tool:  %s\n' "${_BSH_AUDIO_TOOL:-not detected}"
+  printf '  sound pack:  %s\n' "${_BSH_SOUND_PACK:-meme}"
+  printf '  volume:      %s\n' "${_BSH_VOLUME:-70}"
   printf '  theme:       %s\n' "${_BSH_THEME:-default}"
   printf '  version:     %s\n' "${_BSH_VERSION:-unknown}"
 }
 
 # bsh — Public dispatcher for user-facing plugin control.
-# Usage: bsh on|off|status [--persist]
-#   on       Set _BSH_ENABLED=1 (Better Shell active)
-#   off      Set _BSH_ENABLED=0 (Better Shell inactive)
-#   status   Print current state, shell, audio tool, theme, version
-#   --persist  (with on/off) Write the new state to ${_BSH_DIR}/config so it
-#              survives new shell sessions
+# Usage: bsh on|off|status|sound-pack|volume [args] [--persist]
+#   on              Set _BSH_ENABLED=1 (Better Shell active)
+#   off             Set _BSH_ENABLED=0 (Better Shell inactive)
+#   status          Print current state, shell, audio tool, pack, volume, theme, version
+#   sound-pack      Show active pack and list available packs
+#   sound-pack <n>  Switch to named sound pack and persist the choice
+#   volume          Show current volume (0-100)
+#   volume <n>      Set volume (0-100) and persist
+#   --persist       (with on/off) Write the new state to ${_BSH_DIR}/config
 bsh() {
   local subcmd="${1:-}"
   local flag="${2:-}"
@@ -635,8 +1002,39 @@ bsh() {
     status)
       _bsh_print_status
       ;;
+    sound-pack)
+      if [[ -z "${2:-}" ]]; then
+        printf 'Active pack: %s\n' "${_BSH_SOUND_PACK:-meme}"
+        printf 'Available packs:\n'
+        # List bundled packs
+        local p
+        for p in "${_BSH_DIR}"/sounds/*/; do
+          [[ -d "$p" ]] && printf '  %s\n' "$(basename "$p")"
+        done
+        # List user custom packs
+        local user_packs="${HOME}/.config/better-shell/packs"
+        if [[ -d "$user_packs" ]]; then
+          for p in "${user_packs}"/*/; do
+            [[ -d "$p" ]] && printf '  %s (user)\n' "$(basename "$p")"
+          done
+        fi
+      else
+        _BSH_SOUND_PACK="$2"
+        _bsh_config_set sound_pack "$2"
+        printf 'Sound pack set to: %s\n' "$2"
+      fi
+      ;;
+    volume)
+      if [[ -z "${2:-}" ]]; then
+        printf 'Volume: %s\n' "${_BSH_VOLUME:-70}"
+      else
+        _BSH_VOLUME="$2"
+        _bsh_config_set volume "$2"
+        printf 'Volume set to: %s\n' "$2"
+      fi
+      ;;
     *)
-      printf 'Usage: bsh on|off|status [--persist]\n' >&2
+      printf 'Usage: bsh on|off|status|sound-pack [<name>]|volume [<0-100>] [--persist]\n' >&2
       return 1
       ;;
   esac
