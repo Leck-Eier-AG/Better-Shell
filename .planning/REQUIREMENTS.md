@@ -16,14 +16,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Audio
 
-- [ ] **AUD-01**: Play configurable sound on non-zero exit code (error)
-- [ ] **AUD-02**: Play configurable sound on success (zero exit code)
+- [x] **AUD-01**: Play configurable sound on non-zero exit code (error)
+- [x] **AUD-02**: Play configurable sound on success (zero exit code)
 - [ ] **AUD-03**: Ship default bundled sound files (error beep, success chime)
 - [ ] **AUD-04**: Allow user-provided custom sound files (.wav/.mp3)
-- [ ] **AUD-05**: Cross-platform audio playback (afplay/aplay/paplay detection)
-- [ ] **AUD-06**: All audio playback is non-blocking (async)
-- [ ] **AUD-07**: Configurable time threshold (skip sounds for trivial commands)
-- [ ] **AUD-08**: Command blacklist (never trigger on vim, man, watch, etc.)
+- [x] **AUD-05**: Cross-platform audio playback (afplay/aplay/paplay detection)
+- [x] **AUD-06**: All audio playback is non-blocking (async)
+- [x] **AUD-07**: Configurable time threshold (skip sounds for trivial commands)
+- [x] **AUD-08**: Command blacklist (never trigger on vim, man, watch, etc.)
 - [ ] **AUD-09**: Sound packs/themes with one-command swap (retro, minimal, dramatic)
 - [ ] **AUD-10**: Detect and trigger on stderr output
 
@@ -72,14 +72,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HOOK-02 | Phase 1 | Complete |
 | HOOK-03 | Phase 1 | Complete |
 | HOOK-04 | Phase 1 | Complete |
-| AUD-01 | Phase 2 | Pending |
-| AUD-02 | Phase 2 | Pending |
+| AUD-01 | Phase 2 | Complete |
+| AUD-02 | Phase 2 | Complete |
 | AUD-03 | Phase 2 | Pending |
 | AUD-04 | Phase 2 | Pending |
-| AUD-05 | Phase 2 | Pending |
-| AUD-06 | Phase 2 | Pending |
-| AUD-07 | Phase 2 | Pending |
-| AUD-08 | Phase 2 | Pending |
+| AUD-05 | Phase 2 | Complete |
+| AUD-06 | Phase 2 | Complete |
+| AUD-07 | Phase 2 | Complete |
+| AUD-08 | Phase 2 | Complete |
 | AUD-09 | Phase 2 | Pending |
 | AUD-10 | Phase 2 | Pending |
 | VIS-01 | Phase 3 | Pending |

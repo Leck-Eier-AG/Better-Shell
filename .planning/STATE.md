@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T09:36:13.090Z"
+last_updated: "2026-02-26T11:17:50Z"
 progress:
-  total_phases: 1
+  total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -18,32 +18,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** The shell should feel alive — every command gets a reaction, turning the terminal from a silent tool into an expressive experience.
-**Current focus:** Phase 1 — Hook Infrastructure
+**Current focus:** Phase 2 — Audio Subsystem
 
 ## Current Position
 
-Phase: 1 of 4 (Hook Infrastructure)
-Plan: 3 of 3 in current phase
+Phase: 2 of 4 (Audio Subsystem)
+Plan: 1 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-26 — Completed 01-03 zsh early-exit bug fix
+Last activity: 2026-02-26 — Completed 02-01 audio engine and trigger logic
 
-Progress: [███░░░░░░░] 30%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 3 min
-- Total execution time: 9 min
+- Total execution time: 11 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-hook-infrastructure | 3 | 9 min | 3 min |
+| 02-audio | 1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (3 min), 01-03 (3 min)
+- Last 5 plans: 01-01 (3 min), 01-02 (3 min), 01-03 (3 min), 02-01 (2 min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -70,6 +71,10 @@ Recent decisions affecting current work:
 - [01-02]: _bsh_config_load auto-called at bottom of config.sh so persisted disable survives new sessions
 - [Phase 01-03]: bash-preexec wrapped in _bsh_load_bash_preexec() during build so return statements are function-scoped not file-scoped
 - [Phase 01-03]: Makefile uses double-dollar ($$) to escape make variable expansion for literal BASH_VERSION shell variable reference in output
+- [02-01]: SECONDS integer threshold of 1s used (closest to 500ms user intent — SECONDS resolution is 1s in bash/zsh)
+- [02-01]: Player probe order: pw-play > paplay > afplay > aplay (PipeWire first on modern Linux)
+- [02-01]: Whitelist overrides both threshold and blacklist (explicit user intent wins)
+- [02-01]: ERE patterns stored unquoted in [[ =~ ]] (quoting disables regex in bash/zsh)
 
 ### Pending Todos
 
@@ -84,5 +89,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-03-PLAN.md — zsh early-exit bug fix (2 tasks, 28 tests passing, zsh hooks confirmed)
+Stopped at: Completed 02-01-PLAN.md — audio engine and trigger logic (3 tasks, 48 tests passing, audio subsystem wired into precmd)
 Resume file: None
