@@ -44,7 +44,10 @@ Plans:
   3. Plugin works out of the box with bundled sounds — no user configuration required
   4. User can drop their own .wav or .mp3 file into config and hear it instead of the default
   5. Plugin detects and uses the available audio tool (afplay/aplay/paplay) and silently no-ops on systems with no audio
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — Core audio engine: player detection, non-blocking playback, trigger logic, blacklist/whitelist, threshold, intensity scaling
+- [ ] 02-02-PLAN.md — Bundled sound packs (meme/chill/retro), custom sounds, pack switching, stderr detection, hot reload
 
 ### Phase 3: Visuals
 **Goal**: Users see ASCII art reactions and an animated spinner in their terminal, making the shell feel expressive and alive
@@ -76,6 +79,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Hook Infrastructure | 3/3 | Complete   | 2026-02-26 |
-| 2. Audio | 0/? | Not started | - |
+| 2. Audio | 0/2 | Planned | - |
 | 3. Visuals | 0/? | Not started | - |
 | 4. Config, Triggers, and CLI | 0/? | Not started | - |
