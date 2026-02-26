@@ -16,7 +16,9 @@ LIB    := lib/header.sh lib/config.sh lib/env.sh lib/compat.sh lib/hooks.sh lib/
 # Filter to only existing lib files (forward-compatible for future plans)
 EXISTING_LIB := $(wildcard $(LIB))
 
-.PHONY: build clean test
+PREFIX := $(HOME)/.better-shell
+
+.PHONY: build clean test install
 
 build:
 	@printf '# bash-preexec loader — bash only; wrapped so return cannot exit the sourced file\n' > $(DIST)
@@ -29,6 +31,12 @@ build:
 
 clean:
 	rm -f $(DIST)
+
+install: build
+	@mkdir -p $(PREFIX)
+	@cp $(DIST) $(PREFIX)/better-shell.sh
+	@cp -r sounds $(PREFIX)/sounds
+	@echo "Installed to $(PREFIX)"
 
 test:
 	bash tests/test_hooks.sh && bash tests/test_toggle.sh && bash tests/test_audio.sh
