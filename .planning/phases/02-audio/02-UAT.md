@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 02-audio
 source: [02-01-SUMMARY.md, 02-02-SUMMARY.md]
 started: 2026-02-26T12:00:00Z
-updated: 2026-02-26T12:15:00Z
+updated: 2026-02-26T12:30:00Z
 ---
 
 ## Current Test
@@ -61,7 +61,7 @@ skipped: 0
 ## Gaps
 
 - truth: "Error sound plays on failed command"
-  status: failed
+  status: resolved
   reason: "User reported: no sound, when i run \"false\" or any other command that fails"
   severity: major
   test: 3
@@ -74,7 +74,7 @@ skipped: 0
   debug_session: ".planning/debug/error-sound-never-plays.md"
 
 - truth: "Sound pack switching works for all packs including error sounds"
-  status: failed
+  status: resolved
   reason: "User reported: chill soundpack has no fail sounds. sleep 2 gives a pling"
   severity: major
   test: 4
@@ -87,7 +87,7 @@ skipped: 0
   debug_session: ".planning/debug/error-sound-never-plays.md"
 
 - truth: "Background audio playback is completely silent in terminal (no job control messages)"
-  status: failed
+  status: resolved
   reason: "User reported: it doesn't block my input, but it shows \"[2]  + 413592 done       ( set +m; case \"$_BSH_AUDIO_TOOL\" in (pw-play) pw-play  \"$file\" > /dev/null 2\" in the terminal. it should be completely silent and hidden, so it doesn't annoy the user."
   severity: major
   test: 7
