@@ -1,0 +1,7 @@
+# Editor/OS files
+*.swp
+*~
+.DS_Store
+
+# Config files (user-specific, created at runtime by bsh off/on --persist)
+config

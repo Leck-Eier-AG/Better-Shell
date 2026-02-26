@@ -3,9 +3,17 @@
 
 DIST   := better-shell.sh
 VENDOR := vendor/bash-preexec.sh
-LIB    := lib/header.sh lib/env.sh lib/compat.sh lib/hooks.sh lib/toggle.sh lib/config.sh
+# Concatenation order matters:
+#   1. vendor/bash-preexec.sh  — preexec hook support for bash
+#   2. lib/header.sh           — idempotency guard, _BSH_DIR, defaults
+#   3. lib/config.sh           — config load/write (must run before env.sh to override defaults)
+#   4. lib/env.sh              — interactive gate (uses _BSH_SSH_ENABLED which config may set)
+#   5. lib/compat.sh           — shell detection, hook setup
+#   6. lib/hooks.sh            — hook function definitions + registration
+#   7. lib/toggle.sh           — bsh() public dispatcher
+LIB    := lib/header.sh lib/config.sh lib/env.sh lib/compat.sh lib/hooks.sh lib/toggle.sh
 
-# Filter to only existing lib files so Plan 02 files (toggle.sh, config.sh) don't break build
+# Filter to only existing lib files (forward-compatible for future plans)
 EXISTING_LIB := $(wildcard $(LIB))
 
 .PHONY: build clean test
@@ -17,4 +25,4 @@ clean:
 	rm -f $(DIST)
 
 test:
-	bash tests/test_hooks.sh
+	bash tests/test_hooks.sh && bash tests/test_toggle.sh
