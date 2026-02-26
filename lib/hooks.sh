@@ -37,11 +37,11 @@ _bsh_precmd() {
   # If _BSH_CMD_START_TIME is not set, use SECONDS so duration evaluates to 0.
   _BSH_CMD_DURATION=$(( SECONDS - ${_BSH_CMD_START_TIME:-$SECONDS} ))
 
+  # Audio feedback (Phase 2)
+  _bsh_audio_trigger
+
   # Reset start time for next command
   _BSH_CMD_START_TIME=$SECONDS
-
-  # Phase 2+ will act on _BSH_LAST_EXIT and _BSH_CMD_DURATION here
-  # (e.g., play audio feedback, trigger visual effects based on exit code and duration)
 }
 
 # Hook registration — dispatch based on detected shell (_BSH_SHELL set by compat.sh)

@@ -22,9 +22,13 @@ _bsh_config_load() {
 
     # Map known keys to their corresponding shell variables
     case "$key" in
-      enabled)     _BSH_ENABLED="$value"     ;;
-      ssh_enabled) _BSH_SSH_ENABLED="$value" ;;
-      # Unknown keys are silently ignored (forward-compatible for Phase 2+ settings)
+      enabled)         _BSH_ENABLED="$value"          ;;
+      ssh_enabled)     _BSH_SSH_ENABLED="$value"      ;;
+      audio_threshold) _BSH_AUDIO_THRESHOLD="$value"  ;;
+      sound_pack)      _BSH_SOUND_PACK="$value"       ;;
+      volume)          _BSH_VOLUME="$value"            ;;
+      scaling_method)  _BSH_SCALING_METHOD="$value"   ;;
+      # Unknown keys are silently ignored (forward-compatible for future settings)
     esac
   done < "$config"
 }

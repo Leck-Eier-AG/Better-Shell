@@ -11,7 +11,7 @@ VENDOR := vendor/bash-preexec.sh
 #   5. lib/compat.sh           — shell detection, hook setup
 #   6. lib/hooks.sh            — hook function definitions + registration
 #   7. lib/toggle.sh           — bsh() public dispatcher
-LIB    := lib/header.sh lib/config.sh lib/env.sh lib/compat.sh lib/hooks.sh lib/toggle.sh
+LIB    := lib/header.sh lib/config.sh lib/env.sh lib/compat.sh lib/hooks.sh lib/audio-player.sh lib/audio.sh lib/toggle.sh
 
 # Filter to only existing lib files (forward-compatible for future plans)
 EXISTING_LIB := $(wildcard $(LIB))
@@ -31,4 +31,4 @@ clean:
 	rm -f $(DIST)
 
 test:
-	bash tests/test_hooks.sh && bash tests/test_toggle.sh
+	bash tests/test_hooks.sh && bash tests/test_toggle.sh && bash tests/test_audio.sh
