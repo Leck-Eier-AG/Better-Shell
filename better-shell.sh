@@ -1,3 +1,5 @@
+# bash-preexec loader — bash only; wrapped so return cannot exit the sourced file
+_bsh_load_bash_preexec() {
 # bash-preexec v0.6.0 — https://raw.githubusercontent.com/rcaloras/bash-preexec/0.6.0/bash-preexec.sh
 # bash-preexec.sh -- Bash support for ZSH-like 'preexec' and 'precmd' functions.
 # https://github.com/rcaloras/bash-preexec
@@ -375,6 +377,11 @@ __bp_install_after_session_init() {
 if [[ -z "${__bp_delay_install:-}" ]]; then
     __bp_install_after_session_init
 fi
+
+}
+[ -n "${BASH_VERSION-}" ] && _bsh_load_bash_preexec
+unset -f _bsh_load_bash_preexec 2>/dev/null
+
 # Better Shell — Header
 # Idempotency guard, version, and directory setup.
 # This file is sourced first in the concatenated better-shell.sh.

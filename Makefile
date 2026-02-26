@@ -19,7 +19,13 @@ EXISTING_LIB := $(wildcard $(LIB))
 .PHONY: build clean test
 
 build:
-	cat $(VENDOR) $(EXISTING_LIB) > $(DIST)
+	@printf '# bash-preexec loader — bash only; wrapped so return cannot exit the sourced file\n' > $(DIST)
+	@printf '_bsh_load_bash_preexec() {\n' >> $(DIST)
+	@cat $(VENDOR) >> $(DIST)
+	@printf '\n}\n' >> $(DIST)
+	@printf '[ -n "$${BASH_VERSION-}" ] && _bsh_load_bash_preexec\n' >> $(DIST)
+	@printf 'unset -f _bsh_load_bash_preexec 2>/dev/null\n\n' >> $(DIST)
+	@cat $(EXISTING_LIB) >> $(DIST)
 
 clean:
 	rm -f $(DIST)
