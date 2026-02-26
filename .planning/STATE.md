@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T09:13:57.483Z"
+last_updated: "2026-02-26T09:36:13.090Z"
 progress:
   total_phases: 1
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -23,27 +23,27 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 1 of 4 (Hook Infrastructure)
-Plan: 2 of ? in current phase
+Plan: 3 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-26 — Completed 01-02 toggle + config + distributable
+Last activity: 2026-02-26 — Completed 01-03 zsh early-exit bug fix
 
-Progress: [██░░░░░░░░] 20%
+Progress: [███░░░░░░░] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
+- Total plans completed: 3
 - Average duration: 3 min
-- Total execution time: 6 min
+- Total execution time: 9 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-hook-infrastructure | 2 | 6 min | 3 min |
+| 01-hook-infrastructure | 3 | 9 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min), 01-02 (3 min)
+- Last 5 plans: 01-01 (3 min), 01-02 (3 min), 01-03 (3 min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -68,6 +68,8 @@ Recent decisions affecting current work:
 - [01-02]: Atomic write for _bsh_config_set (tmp.PID then mv) prevents config corruption on crash
 - [01-02]: better-shell.sh tracked in git so users get working plugin immediately after git clone
 - [01-02]: _bsh_config_load auto-called at bottom of config.sh so persisted disable survives new sessions
+- [Phase 01-03]: bash-preexec wrapped in _bsh_load_bash_preexec() during build so return statements are function-scoped not file-scoped
+- [Phase 01-03]: Makefile uses double-dollar ($$) to escape make variable expansion for literal BASH_VERSION shell variable reference in output
 
 ### Pending Todos
 
@@ -82,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-02-PLAN.md — toggle + config + distributable (2 tasks, 28 tests passing)
+Stopped at: Completed 01-03-PLAN.md — zsh early-exit bug fix (2 tasks, 28 tests passing, zsh hooks confirmed)
 Resume file: None
