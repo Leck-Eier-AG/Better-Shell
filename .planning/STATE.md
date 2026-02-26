@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-26)
 ## Current Position
 
 Phase: 1 of 4 (Hook Infrastructure)
-Plan: 1 of ? in current phase
+Plan: 2 of ? in current phase
 Status: In progress
-Last activity: 2026-02-26 — Completed 01-01 hook infrastructure foundation
+Last activity: 2026-02-26 — Completed 01-02 toggle + config + distributable
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 2
 - Average duration: 3 min
-- Total execution time: 3 min
+- Total execution time: 6 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-hook-infrastructure | 1 | 3 min | 3 min |
+| 01-hook-infrastructure | 2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (3 min)
-- Trend: —
+- Last 5 plans: 01-01 (3 min), 01-02 (3 min)
+- Trend: consistent
 
 *Updated after each plan completion*
 
@@ -51,6 +51,10 @@ Recent decisions affecting current work:
 - [01-01]: Exit code captured as first line of _bsh_precmd before any other operation
 - [01-01]: SSH blocked by default in _bsh_is_interactive; CI environments always blocked
 - [01-01]: Makefile uses wildcard for LIB so Plan 02 files (toggle.sh, config.sh) don't break build
+- [01-02]: config.sh sourced before env.sh so persisted ssh_enabled overrides default before interactive gate
+- [01-02]: Atomic write for _bsh_config_set (tmp.PID then mv) prevents config corruption on crash
+- [01-02]: better-shell.sh tracked in git so users get working plugin immediately after git clone
+- [01-02]: _bsh_config_load auto-called at bottom of config.sh so persisted disable survives new sessions
 
 ### Pending Todos
 
@@ -65,5 +69,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-01-PLAN.md — hook infrastructure foundation (3 tasks, 14 tests passing)
+Stopped at: Completed 01-02-PLAN.md — toggle + config + distributable (2 tasks, 28 tests passing)
 Resume file: None
