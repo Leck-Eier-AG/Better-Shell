@@ -1,0 +1,26 @@
+# Better Shell — Sound Sources
+# All sounds in this directory are original synthesized works.
+# Generated using Python's wave and math modules — no copyrighted material.
+# License: CC0 1.0 Universal (Public Domain Dedication)
+# https://creativecommons.org/publicdomain/zero/1.0/
+#
+# Pack: meme   — dramatic, over-the-top synthesized tones
+# Pack: chill  — soft, pleasant synthesized chimes and bass tones
+# Pack: retro  — 8-bit style square/triangle wave chiptune sounds
+#
+# Generation date: 2026-02-26
+# Tool: Python 3 wave + math modules (scripts/gen_sounds.py)
+# Generator: scripts/gen_sounds.py — included in repository for reproducibility
+#
+# Sound design:
+#   meme/error:   descending sine sweeps with overdrive on heavy
+#   meme/success: ascending sine sweeps with harmonic chords
+#   meme/warning: wobbling frequency modulation, alternating tones
+#
+#   chill/error:   low-frequency sines with exponential decay
+#   chill/success: bell-like sine tones with natural fade (880/1100 Hz)
+#   chill/warning: soft decaying sine pings, minor chord on heavy
+#
+#   retro/error:   square wave descending note sequences
+#   retro/success: square+triangle ascending scales, coin blip on light
+#   retro/warning: triangle wave pulses, alternating square tones on heavy
