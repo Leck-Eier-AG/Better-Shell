@@ -12,7 +12,7 @@ Better Shell is built in four phases that follow the natural dependency order of
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Hook Infrastructure** - Safe shell hooks that detect commands in bash and zsh without breaking anything
+- [ ] **Phase 1: Hook Infrastructure** - Safe shell hooks that detect commands in bash and zsh without breaking anything
 - [ ] **Phase 2: Audio** - Non-blocking sound playback on error and success with cross-platform support
 - [ ] **Phase 3: Visuals** - ASCII art reactions, animated spinners, and prompt exit code indicator
 - [ ] **Phase 4: Config, Triggers, and CLI** - TOML config file, custom trigger rules, and CLI commands for setup
@@ -28,10 +28,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Plugin fires preexec before commands and precmd after commands in both bash and zsh
   3. Plugin emits no output and adds no visible latency in non-interactive or piped contexts (SSH, CI, headless)
   4. User can run `bsh off` to suppress all plugin behavior and `bsh on` to restore it
-**Plans:** 2/2 plans executed
+**Plans:** 3 plans
 Plans:
 - [x] 01-01-PLAN.md — Core hook infrastructure: env detection, shell compat, preexec/precmd hooks
 - [x] 01-02-PLAN.md — Toggle command (bsh on/off/status), config persistence, build distributable
+- [ ] 01-03-PLAN.md — Gap closure: fix zsh early-exit bug in bash-preexec concatenation
 
 ### Phase 2: Audio
 **Goal**: Users hear immediate, non-blocking audio feedback on command error and success, with sensible defaults that prevent noise on trivial commands
@@ -74,7 +75,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Hook Infrastructure | 2/2 | Complete | 2026-02-26 |
+| 1. Hook Infrastructure | 2/3 | In progress (gap closure) | - |
 | 2. Audio | 0/? | Not started | - |
 | 3. Visuals | 0/? | Not started | - |
 | 4. Config, Triggers, and CLI | 0/? | Not started | - |
